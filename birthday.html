@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>For Ahana... ✨</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* Dreamy Gradient Animation */
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(-45deg, #0f172a, #2e1065, #1e1b4b, #172554);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #f8fafc;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden; /* Prevent scrolling, handle via JS steps */
+            min-height: 100dvh;
+            -webkit-font-smoothing: antialiased;
+            touch-action: manipulation; /* Disable double-tap to zoom */
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .font-handwriting { font-family: 'Caveat', cursive; }
+
+        /* Loader */
+        #loader {
+            transition: opacity 1s ease, visibility 1s ease;
+        }
+        .progress-bar {
+            box-shadow: 0 0 15px rgba(167, 139, 250, 0.5);
+        }
+
+        /* Custom Cursor/Touch Glow */
+        #touch-glow {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            transition: width 0.3s, height 0.3s, opacity 0.3s;
+            opacity: 0;
+        }
+
+        /* 3D Canvas Background */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        /* Step Transitions */
+        .step {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.95) translateY(20px);
+            transition: all 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 10;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .step.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1) translateY(0);
+            z-index: 20;
+        }
+        .step.exit {
+            transform: scale(1.05) translateY(-20px);
+            opacity: 0;
+        }
+
+        /* Glassmorphism Elements */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* Soft pulsing button */
+        .btn-glow {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            box-shadow: 0 0 15px rgba(167, 139, 250, 0.2);
+            transition: all 0.4s ease;
+        }
+        .btn-glow:hover, .btn-glow:active {
+            background: rgba(167, 139, 250, 0.15);
+            box-shadow: 0 0 25px rgba(167, 139, 250, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* 3D Gallery */
+        .gallery-container {
+            perspective: 1200px;
+            display: flex;
+            gap: 1.5rem;
+            overflow-x: auto;
+            padding: 2rem 1rem;
+            width: 100%;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+        .gallery-container::-webkit-scrollbar { display: none; }
+
+        .tilt-card {
+            flex: 0 0 240px;
+            height: 320px;
+            border-radius: 1.5rem;
+            transform-style: preserve-3d;
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            scroll-snap-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .tilt-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.7;
+            transition: opacity 0.4s;
+            transform: translateZ(-20px) scale(1.1); /* Parallax depth */
+        }
+        .tilt-card:hover img { opacity: 1; }
+        
+        .card-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem 1rem 1.5rem;
+            background: linear-gradient(to top, rgba(15,23,42,0.95), transparent);
+            transform: translateZ(40px); /* Pops out in 3D */
+            transition: transform 0.3s;
+        }
+
+        /* Final Text Glow */
+        .text-super-glow {
+            text-shadow: 0 0 20px rgba(236, 72, 153, 0.4), 0 0 40px rgba(167, 139, 250, 0.4);
+            animation: pulseGlow 3s infinite alternate;
+        }
+        @keyframes pulseGlow {
+            0% { text-shadow: 0 0 20px rgba(236, 72, 153, 0.4), 0 0 40px rgba(167, 139, 250, 0.4); }
+            100% { text-shadow: 0 0 30px rgba(236, 72, 153, 0.6), 0 0 60px rgba(167, 139, 250, 0.6); }
+        }
+
+        /* Easter Egg Toast */
+        #easter-egg {
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        #easter-egg.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Balloons */
+        .balloon {
+            position: absolute;
+            width: 40px;
+            height: 50px;
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+            opacity: 0.8;
+            animation: floatBalloon 10s ease-in-out infinite;
+            z-index: 15;
+            bottom: -60px;
+        }
+        .balloon::before {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 8px solid inherit;
+        }
+        .balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -48px;
+            left: 50%;
+            width: 1px;
+            height: 40px;
+            background: rgba(255,255,255,0.4);
+        }
+        @keyframes floatBalloon {
+            0% { transform: translateY(0) translateX(0) rotate(-5deg); opacity: 0; }
+            10% { opacity: 0.9; }
+            50% { transform: translateY(-50vh) translateX(20px) rotate(5deg); }
+            100% { transform: translateY(-120vh) translateX(-20px) rotate(-5deg); opacity: 0; }
+        }
+
+        /* Gift Box Animations */
+        .explode {
+            animation: explodeBox 0.6s forwards cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+        @keyframes explodeBox {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
+            20% { transform: scale(0.8) rotate(-10deg); opacity: 1; }
+            50% { transform: scale(1.5) rotate(10deg); opacity: 1; filter: brightness(1.5); }
+            100% { transform: scale(3.5) rotate(0deg); opacity: 0; filter: brightness(3); }
+        }
+
+        /* Click Ripple */
+        .click-ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(236, 72, 153, 0.8);
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.5), inset 0 0 20px rgba(236, 72, 153, 0.5);
+            transform: translate(-50%, -50%);
+            animation: rippleAnim 0.8s ease-out forwards;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        @keyframes rippleAnim {
+            0% { width: 0; height: 0; opacity: 1; }
+            100% { width: 150px; height: 150px; opacity: 0; border-width: 0px; }
+        }
+
+        /* 3D Rotating Rings */
+        .ring-container {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            perspective: 1000px; pointer-events: none; z-index: 1;
+        }
+        .ring-3d {
+            position: absolute; top: 50%; left: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(167, 139, 250, 0.2), inset 0 0 20px rgba(167, 139, 250, 0.2);
+            transform-style: preserve-3d;
+        }
+        .r1 { width: 300px; height: 300px; animation: spin1 10s linear infinite; border-color: rgba(167, 139, 250, 0.3); margin-top: -150px; margin-left: -150px;}
+        .r2 { width: 450px; height: 450px; animation: spin2 15s linear infinite; border-color: rgba(236, 72, 153, 0.2); margin-top: -225px; margin-left: -225px;}
+        .r3 { width: 600px; height: 600px; animation: spin3 20s linear infinite; border-color: rgba(129, 140, 248, 0.1); margin-top: -300px; margin-left: -300px;}
+        
+        @keyframes spin1 { 0% { transform: rotateX(60deg) rotateY(0deg) rotateZ(0deg); } 100% { transform: rotateX(60deg) rotateY(360deg) rotateZ(360deg); } }
+        @keyframes spin2 { 0% { transform: rotateX(45deg) rotateY(180deg) rotateZ(0deg); } 100% { transform: rotateX(45deg) rotateY(540deg) rotateZ(-360deg); } }
+        @keyframes spin3 { 0% { transform: rotateX(75deg) rotateY(90deg) rotateZ(0deg); } 100% { transform: rotateX(75deg) rotateY(450deg) rotateZ(360deg); } }
+
+        /* Floating Color Orbs */
+        .color-orb {
+            position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.4; animation: floatOrb 20s ease-in-out infinite alternate; pointer-events: none; z-index: 0;
+        }
+        @keyframes floatOrb {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(100px, -100px) scale(1.5); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Touch / Cursor Glow -->
+    <div id="touch-glow"></div>
+
+    <!-- Background Music -->
+    <audio id="bg-music" src="https://cdn.pixabay.com/download/audio/2022/01/21/audio_31743c58bb.mp3?filename=romantic-piano-110098.mp3" loop preload="auto"></audio>
+    
+    <!-- Audio Toggle -->
+    <button id="audio-toggle" class="fixed top-6 right-6 z-50 p-3 rounded-full glass text-slate-300 opacity-0 transition-opacity duration-1000 hidden">
+        <svg id="icon-unmute" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10v4a2 2 0 002 2h2.586l3.707 3.707A1 1 0 0015 19V5a1 1 0 00-1.707-.707L7.586 10H7a2 2 0 00-2 2z"></path></svg>
+        <svg id="icon-mute" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+    </button>
+
+    <!-- 3D Magical Background Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Floating Color Orbs for Depth -->
+    <div class="color-orb bg-pink-600 w-64 h-64 top-[-10%] left-[-10%]"></div>
+    <div class="color-orb bg-purple-600 w-80 h-80 bottom-[-10%] right-[-10%]" style="animation-delay: -5s;"></div>
+    <div class="color-orb bg-indigo-600 w-72 h-72 top-[30%] left-[50%]" style="animation-delay: -10s;"></div>
+
+    <!-- 3D Rotating Rings -->
+    <div class="ring-container">
+        <div class="ring-3d r1"></div>
+        <div class="ring-3d r2"></div>
+        <div class="ring-3d r3"></div>
+    </div>
+
+    <!-- LOADER SCREEN -->
+    <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f172a]">
+        <p class="font-handwriting text-3xl text-purple-300 mb-6 tracking-wider animate-pulse">Preparing something special for you...</p>
+        <div class="w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div id="progress" class="h-full bg-gradient-to-r from-purple-400 to-pink-400 progress-bar w-0 transition-all duration-300"></div>
+        </div>
+        <p id="progress-text" class="mt-3 text-slate-400 font-light text-sm">0%</p>
+    </div>
+
+    <!-- MAIN CONTENT STEPS -->
+    <div id="steps-container" class="relative w-full h-full">
+
+        <!-- Step 0: Welcome -->
+        <div class="step" id="step-0">
+            <p class="font-handwriting text-3xl md:text-5xl lg:text-6xl text-slate-200 mb-8 tracking-wide drop-shadow-md">
+                Hey Ahana... I made something for you 😊
+            </p>
+            <button onclick="nextStep()" class="btn-glow px-6 py-3 md:px-8 md:py-3.5 rounded-full text-purple-100 font-light text-base md:text-lg tracking-widest uppercase flex items-center gap-3">
+                Tap to continue
+                <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+            </button>
+        </div>
+
+        <!-- Step 1: Suspense -->
+        <div class="step cursor-pointer" id="step-1" onclick="nextStep()">
+            <p class="text-xl md:text-4xl font-light text-slate-300 tracking-wide px-4">
+                Wait... don't rush.
+            </p>
+            <p class="mt-8 text-xs text-slate-500 tracking-widest uppercase animate-pulse">Tap anywhere</p>
+        </div>
+
+        <!-- Step 2: Suspense -->
+        <div class="step cursor-pointer" id="step-2" onclick="nextStep()">
+            <p class="font-handwriting text-3xl md:text-5xl text-purple-300 opacity-90 px-4">
+                This might be a little silly...
+            </p>
+        </div>
+
+        <!-- Step 3: Suspense -->
+        <div class="step cursor-pointer" id="step-3" onclick="nextStep()">
+            <p class="text-xl md:text-4xl font-light text-slate-200 px-4">
+                But I still wanted to do this.
+            </p>
+        </div>
+
+        <!-- Step 4: Suspense -->
+        <div class="step cursor-pointer" id="step-4" onclick="nextStep()">
+            <p class="font-handwriting text-3xl md:text-6xl text-pink-300 px-4">
+                Because today is not just any day...
+            </p>
+        </div>
+
+        <!-- Step 5: Memory Gallery -->
+        <div class="step" id="step-5">
+            <p class="font-handwriting text-3xl md:text-4xl text-purple-200 mb-2 mt-4 px-4">
+                Small moments matter :)
+            </p>
+            <p class="text-xs text-slate-400 font-light mb-4 tracking-widest uppercase opacity-70">Swipe slowly</p>
+            
+            <div class="gallery-container">
+                <div class="tilt-card">
+                    <img src="https://images.unsplash.com/photo-1517365830460-955ce3ccd263?q=80&w=800&auto=format&fit=crop" alt="Memory">
+                    <div class="card-caption">
+                        <p class="font-handwriting text-2xl text-white">Quiet vibes</p>
+                    </div>
+                </div>
+                <div class="tilt-card">
+                    <img src="https://images.unsplash.com/photo-1490750967868-88cb44cb2754?q=80&w=800&auto=format&fit=crop" alt="Memory">
+                    <div class="card-caption">
+                        <p class="font-handwriting text-2xl text-white">Beautiful days</p>
+                    </div>
+                </div>
+                <div class="tilt-card">
+                    <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop" alt="Memory">
+                    <div class="card-caption">
+                        <p class="font-handwriting text-2xl text-white">And good memories</p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="nextStep()" class="btn-glow mt-6 px-6 py-3 md:px-8 md:py-3 rounded-full text-purple-100 font-light text-xs md:text-sm tracking-widest uppercase">
+                One last click...
+            </button>
+        </div>
+
+        <!-- Step 6: Emotional Build up -->
+        <div class="step cursor-pointer" id="step-6" onclick="nextStep()">
+            <p class="text-lg md:text-3xl font-light text-slate-300 mb-4 px-4">
+                You may not realize it...
+            </p>
+            <p class="font-handwriting text-3xl md:text-5xl text-purple-300 opacity-90 transition-all duration-1000 delay-500 transform translate-y-4 px-4" id="step-6-text-2">
+                But your presence makes things better.
+            </p>
+        </div>
+
+        <!-- Step 7: The Surprise Box -->
+        <div class="step" id="step-7">
+            <p class="font-handwriting text-4xl md:text-5xl text-pink-200 mb-12 px-4 drop-shadow-md">
+                I got you a little something...
+            </p>
+            <div id="gift-container" class="relative cursor-pointer flex flex-col items-center justify-center transition-transform hover:scale-105" onclick="openGift()">
+                <div id="gift-box" class="text-[100px] md:text-[150px] drop-shadow-[0_0_40px_rgba(236,72,153,0.6)] animate-bounce select-none">
+                    🎁
+                </div>
+                <p id="gift-text" class="mt-8 text-sm text-pink-300 tracking-widest uppercase animate-pulse font-semibold transition-opacity duration-300">
+                    Tap to open
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 8: Final Reveal -->
+        <div class="step" id="step-8" style="overflow-y: auto; touch-action: pan-y; justify-content: flex-start; padding-top: 4rem; padding-bottom: 4rem;">
+            <div id="confetti-layer" class="fixed inset-0 pointer-events-none z-10"></div>
+            
+            <div class="relative z-20 flex flex-col items-center justify-center min-h-full py-4 px-2 sm:px-6 max-w-2xl mx-auto w-full text-center">
+                
+                <h1 id="bday-text" class="text-4xl md:text-8xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-b from-white via-pink-200 to-purple-400 text-super-glow pb-2 cursor-pointer select-none leading-tight">
+                    Happy Birthday,<br><span class="font-handwriting font-normal text-6xl md:text-9xl">Ahana</span> 🎉
+                </h1>
+                
+                <div class="glass p-6 md:p-10 rounded-2xl md:rounded-3xl relative overflow-hidden w-full transition-transform duration-700 hover:scale-[1.02]">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-50"></div>
+                    
+                    <p class="text-base md:text-xl font-light text-slate-200 leading-relaxed mb-4 drop-shadow">
+                        Wishing you lots of happiness, smiles, and everything you love. 
+                    </p>
+                    <p class="text-base md:text-xl font-light text-slate-200 leading-relaxed drop-shadow">
+                        Stay the amazing, wonderful person you are. Here is to a beautiful year ahead! 🎂✨
+                    </p>
+                    
+                    <div class="mt-8 pt-6 border-t border-white/10 flex flex-col items-center">
+                        <p class="font-handwriting text-2xl md:text-3xl text-purple-300 mb-1">
+                            — From someone who appreciates you 😊
+                        </p>
+                    </div>
+                </div>
+                
+                <p class="mt-8 text-[10px] text-slate-500 font-light tracking-widest uppercase opacity-50 mb-10">
+                    (Try holding down on your name)
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hidden Easter Egg Toast -->
+    <div id="easter-egg" class="fixed bottom-6 left-1/2 -translate-x-1/2 glass px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl z-50 pointer-events-none flex items-center justify-center gap-2 md:gap-3 shadow-2xl border-purple-500/30 w-[90vw] max-w-md text-center">
+        <span class="text-xl md:text-2xl shrink-0">✨</span>
+        <p class="font-serif text-slate-200 font-light text-xs md:text-base">
+            Just a small reminder: You're doing great, keep shining!
+        </p>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- 1. Loader Logic ---
+        document.addEventListener("DOMContentLoaded", () => {
+            let progress = 0;
+            const progressEl = document.getElementById('progress');
+            const progressText = document.getElementById('progress-text');
+            const loader = document.getElementById('loader');
+            const step0 = document.getElementById('step-0');
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 15) + 5;
+                if (progress > 100) progress = 100;
+                
+                progressEl.style.width = `${progress}%`;
+                progressText.innerText = `${progress}%`;
+
+                if (progress === 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loader.style.opacity = '0';
+                        loader.style.visibility = 'hidden';
+                        
+                        setTimeout(() => {
+                            step0.classList.add('active');
+                            document.getElementById('audio-toggle').classList.remove('hidden');
+                        }, 500);
+                    }, 600);
+                }
+            }, 250);
+
+            init3DBackground();
+        });
+
+        // --- 2. Step Navigation ---
+        let currentStepIdx = 0;
+        const totalSteps = 8;
+        const audio = document.getElementById('bg-music');
+        let audioStarted = false;
+        window.isWarping = false; // Add warping state
+
+        function nextStep() {
+            if (currentStepIdx > totalSteps) return;
+
+            // Hyper-warp effect on first real interaction
+            if (currentStepIdx === 0) {
+                window.isWarping = true;
+                setTimeout(() => window.isWarping = false, 1200);
+            }
+
+            // Start audio on first click
+            if (!audioStarted) {
+                audio.volume = 0.4;
+                audio.play().then(() => {
+                    document.getElementById('icon-unmute').classList.remove('hidden');
+                    document.getElementById('icon-mute').classList.add('hidden');
+                    document.getElementById('audio-toggle').style.opacity = '1';
+                }).catch(e => console.log("Audio play prevented:", e));
+                audioStarted = true;
+            }
+
+            // Hide current step
+            const currentEl = document.getElementById(`step-${currentStepIdx}`);
+            if (currentEl) {
+                currentEl.classList.remove('active');
+                currentEl.classList.add('exit');
+            }
+
+            currentStepIdx++;
+
+            // Show next step
+            const nextEl = document.getElementById(`step-${currentStepIdx}`);
+            if (nextEl) {
+                // Remove exit class if revisiting (though linear here)
+                nextEl.classList.remove('exit');
+                nextEl.classList.add('active');
+
+                // Special handling for Step 6 inner text
+                if(currentStepIdx === 6) {
+                    setTimeout(() => {
+                        document.getElementById('step-6-text-2').style.transform = 'translateY(0)';
+                    }, 800);
+                }
+
+                // Final Step interactions
+                if(currentStepIdx === 8) {
+                    document.body.style.touchAction = 'auto'; // Re-enable scroll if needed
+                    createBalloons();
+                    createConfetti();
+                }
+            }
+        }
+
+        // --- Gift Box Logic ---
+        function openGift() {
+            const giftBox = document.getElementById('gift-box');
+            const giftText = document.getElementById('gift-text');
+            const giftContainer = document.getElementById('gift-container');
+            
+            // Disable further clicks
+            giftContainer.onclick = null;
+            
+            // Apply explode animation
+            giftBox.classList.remove('animate-bounce');
+            giftBox.classList.add('explode');
+            giftText.style.opacity = '0';
+            
+            // Small vibration on mobile
+            if (navigator.vibrate) navigator.vibrate(200);
+            
+            // Move to final reveal after explosion
+            setTimeout(() => {
+                nextStep();
+            }, 550);
+        }
+
+        // --- 3. Audio Toggle ---
+        document.getElementById('audio-toggle').addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play();
+                document.getElementById('icon-unmute').classList.remove('hidden');
+                document.getElementById('icon-mute').classList.add('hidden');
+            } else {
+                audio.pause();
+                document.getElementById('icon-unmute').classList.add('hidden');
+                document.getElementById('icon-mute').classList.remove('hidden');
+            }
+        });
+
+        // --- 4. Custom Cursor / Touch Glow ---
+        const glow = document.getElementById('touch-glow');
+        
+        function moveGlow(e) {
+            let x, y;
+            if (e.touches) {
+                x = e.touches[0].clientX;
+                y = e.touches[0].clientY;
+            } else {
+                x = e.clientX;
+                y = e.clientY;
+            }
+            glow.style.left = `${x}px`;
+            glow.style.top = `${y}px`;
+            glow.style.opacity = '1';
+        }
+
+        document.addEventListener('mousemove', moveGlow);
+        document.addEventListener('touchmove', moveGlow, {passive: true});
+        
+        document.addEventListener('mouseleave', () => glow.style.opacity = '0');
+        document.addEventListener('touchend', () => {
+            setTimeout(() => glow.style.opacity = '0', 500);
+        });
+
+        // --- 5. Interactive 3D Magic Dust Background ---
+        function init3DBackground() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let particles = [];
+            
+            // Mouse/Touch interaction variables for 3D rotation
+            let targetAngleX = 0;
+            let targetAngleY = 0;
+            let angleX = 0;
+            let angleY = 0;
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // Create magical dust particles
+            for(let i = 0; i < 400; i++) {
+                particles.push({
+                    x: (Math.random() - 0.5) * 3000,
+                    y: (Math.random() - 0.5) * 3000,
+                    z: Math.random() * 3000,
+                    size: Math.random() * 3 + 0.5,
+                    color: Math.random() > 0.6 ? '#fbcfe8' : (Math.random() > 0.5 ? '#e0e7ff' : '#ffffff'),
+                    baseAlpha: Math.random() * 0.8 + 0.2
+                });
+            }
+
+            // Track mouse/touch to subtly rotate the 3D galaxy
+            document.addEventListener('mousemove', (e) => {
+                targetAngleY = (e.clientX / width - 0.5) * 1.5;
+                targetAngleX = (e.clientY / height - 0.5) * 1.5;
+            });
+            document.addEventListener('touchmove', (e) => {
+                targetAngleY = (e.touches[0].clientX / width - 0.5) * 1.5;
+                targetAngleX = (e.touches[0].clientY / height - 0.5) * 1.5;
+            }, {passive: true});
+
+            function animate() {
+                requestAnimationFrame(animate);
+                ctx.clearRect(0, 0, width, height);
+                
+                // Smooth camera rotation
+                angleX += (targetAngleX - angleX) * 0.05;
+                angleY += (targetAngleY - angleY) * 0.05;
+
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const fov = 400;
+                const time = Date.now() * 0.0001; // Continuous auto-rotation
+
+                particles.forEach(p => {
+                    // Move particles forward (fast if warping)
+                    const speed = window.isWarping ? 40 : 1.5;
+                    p.z -= speed;
+                    
+                    if (p.z <= 0) {
+                        p.z = 3000;
+                        p.x = (Math.random() - 0.5) * 3000;
+                        p.y = (Math.random() - 0.5) * 3000;
+                    }
+
+                    // 3D Rotations (Auto + Interactive)
+                    const currentRotY = time + angleY;
+                    let rotX = p.x * Math.cos(currentRotY) - p.z * Math.sin(currentRotY);
+                    let rotZ = p.x * Math.sin(currentRotY) + p.z * Math.cos(currentRotY);
+                    
+                    let rotY = p.y * Math.cos(angleX) - rotZ * Math.sin(angleX);
+                    rotZ = p.y * Math.sin(angleX) + rotZ * Math.cos(angleX);
+
+                    if (rotZ < 1) return; // Behind camera
+
+                    // 3D to 2D Projection
+                    const scale = fov / rotZ;
+                    const screenX = centerX + rotX * scale;
+                    const screenY = centerY + rotY * scale;
+                    const screenRadius = p.size * scale;
+
+                    // Draw if on screen
+                    if (screenX > -50 && screenX < width + 50 && screenY > -50 && screenY < height + 50) {
+                        const depthAlpha = Math.min(1, scale * 1.2); // Fades in distance
+                        const finalAlpha = p.baseAlpha * depthAlpha;
+                        
+                        ctx.beginPath();
+                        ctx.arc(screenX, screenY, screenRadius, 0, Math.PI * 2);
+                        ctx.fillStyle = p.color;
+                        ctx.globalAlpha = finalAlpha;
+                        ctx.shadowBlur = screenRadius * 3;
+                        ctx.shadowColor = p.color;
+                        ctx.fill();
+                    }
+                });
+            }
+            animate();
+        }
+
+        // --- 6. 3D Card Tilt (Mobile Friendly) ---
+        const cards = document.querySelectorAll('.tilt-card');
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left; 
+                const y = e.clientY - rect.top;  
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = ((y - centerY) / centerY) * -12;
+                const rotateY = ((x - centerX) / centerX) * 12;
+                
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+            });
+
+            // Touch support (gentler for mobile swiping)
+            card.addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                const rect = card.getBoundingClientRect();
+                if(touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * -8;
+                    const rotateY = ((x - centerX) / centerX) * 8;
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                }
+            }, {passive: true});
+
+            card.addEventListener('touchend', () => {
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+            });
+        });
+
+        // --- 7. Final Effects: Confetti & Balloons ---
+        function createConfetti() {
+            const container = document.getElementById('confetti-layer');
+            const colors = ['#fbcfe8', '#e879f9', '#a78bfa', '#818cf8', '#ffffff'];
+            for (let i = 0; i < 70; i++) {
+                const conf = document.createElement('div');
+                conf.style.position = 'absolute';
+                conf.style.width = `${Math.random() * 8 + 4}px`;
+                conf.style.height = `${Math.random() * 8 + 4}px`;
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                if(Math.random() > 0.5) conf.style.borderRadius = '50%';
+                
+                conf.style.left = `${Math.random() * 100}%`;
+                conf.style.top = `-10px`;
+                
+                const duration = Math.random() * 3 + 2;
+                conf.animate([
+                    { transform: `translate3d(0,0,0) rotate(0deg)`, opacity: 1 },
+                    { transform: `translate3d(${Math.random()*200 - 100}px, 100vh, 0) rotate(${Math.random()*720}deg)`, opacity: 0 }
+                ], {
+                    duration: duration * 1000,
+                    delay: Math.random() * 1000,
+                    fill: 'forwards'
+                });
+                container.appendChild(conf);
+            }
+        }
+
+        function createBalloons() {
+            const container = document.getElementById('confetti-layer');
+            const colors = [
+                'rgba(244, 114, 182, 0.8)', // Pink
+                'rgba(167, 139, 250, 0.8)', // Purple
+                'rgba(129, 140, 248, 0.8)', // Indigo
+            ];
+            for (let i = 0; i < 8; i++) {
+                const balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.style.left = `${Math.random() * 80 + 10}%`;
+                balloon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                balloon.style.borderBottomColor = balloon.style.backgroundColor; // for the knot pseudo-element
+                balloon.style.animationDelay = `${Math.random() * 5}s`;
+                balloon.style.animationDuration = `${Math.random() * 5 + 8}s`;
+                container.appendChild(balloon);
+            }
+        }
+
+        // --- 8. Easter Egg (Long Press) ---
+        const bdayText = document.getElementById('bday-text');
+        const easterEgg = document.getElementById('easter-egg');
+        let pressTimer;
+
+        const startPress = (e) => {
+            // e.preventDefault();
+            pressTimer = window.setTimeout(() => {
+                easterEgg.classList.add('show');
+                createConfetti(); // Extra burst
+                // Hide after 4s
+                setTimeout(() => easterEgg.classList.remove('show'), 4000);
+            }, 800); // 800ms long press
+        };
+
+        const cancelPress = () => {
+            clearTimeout(pressTimer);
+        };
+
+        bdayText.addEventListener('mousedown', startPress);
+        bdayText.addEventListener('touchstart', startPress, {passive: true});
+        bdayText.addEventListener('mouseup', cancelPress);
+        bdayText.addEventListener('mouseleave', cancelPress);
+        bdayText.addEventListener('touchend', cancelPress);
+
+        // --- 9. Click Ripple Effect ---
+        document.addEventListener('click', function(e) {
+            const ripple = document.createElement('div');
+            ripple.className = 'click-ripple';
+            ripple.style.left = e.clientX + 'px';
+            ripple.style.top = e.clientY + 'px';
+            document.body.appendChild(ripple);
+            setTimeout(() => {
+                ripple.remove();
+            }, 800);
+        });
+
+    </script>
+</body>
+</html>
